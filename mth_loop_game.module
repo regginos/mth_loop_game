@@ -1,0 +1,55 @@
+<?php
+/**
+ * @file
+ *  the mail file of the module that produces the Loop Game. 
+ *  Initially intented to be a music trianing activity at MusTeacH.com.
+ *
+ * Code: regginos
+ * 
+ */
+
+function mth_loop_game_get_version() {
+  return '0.1';
+}
+
+/**
+ * Implements hook_help().
+ */
+function mth_loop_game_help($path, $args) {
+  if ($path == 'admin/help#loop_game') {
+    return '<p>' . t('This module produces a pages with loop game.') . '</p>';
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function mth_loop_game_menu() {
+  $module_path = 'loop_game';
+  $items[$module_path] = array(
+    'title' => 'Loop game',
+    'page callback' => 'mth_loop_game_main_page',
+    'access callback' => TRUE,
+    'expanded' => TRUE,
+  );
+  return $items;
+}
+
+function mth_loop_game_main_page() {
+  $path = drupal_get_path('module', 'mth_loop_game');
+  drupal_add_js($path . '/js/buffer-loader.js');
+  drupal_add_js($path . '/js/loop_game.js');
+  drupal_add_js(array('mth_loop_game' => array('soundsPath' => $path . '/sounds', 'warningHTML' => mth_web_audio_warning())), 'setting');
+  $content = '<div id="loopGame"></div>';
+  $content .= '<div id="ready"><p>' . t('Wait... Loading...') . '</p></div>';
+  $content .= '<div id="controls"><div id="start_stop"></div><div id="tempo"></div></div>';
+  return $content;
+}
+
+function mth_web_audio_warning() {
+  $text = '<p style="color:red;">' . t('WARNING! It seems, your browser does not support web audio.') . '</p>';
+  $text .= '<p>' . t('<a href="http://www.w3.org/TR/webaudio/">Web audio</a> is required for the loop game to work correctly.') . '</p>';
+  $text .= '<p>' . t('We recommend <a href="http://www.google.com/chrome">Chrome browser</a>, because it supports web audio.') . '</p>';
+  $text .= '<p>' . t('Safari supports web audio since version 6.0 and Opera since version 15.0. Support for Firefox is planned from version 23.0.') . '</p>';
+  return $text;
+}

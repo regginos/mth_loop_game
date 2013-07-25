@@ -1,0 +1,4 @@
+name = Loop Game
+package = mth
+description = Generates a page with the loop game.
+core = 7.x
