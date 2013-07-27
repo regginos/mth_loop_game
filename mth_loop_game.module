@@ -37,11 +37,17 @@ function mth_loop_game_menu() {
 
 function mth_loop_game_main_page() {
   $path = drupal_get_path('module', 'mth_loop_game');
+  $wait = '<p>' . t('Wait... Loading...') . '</p>';
+  $loop_game_settings = array(
+    'soundsPath' => $path . '/sounds',
+    'warningHTML' => mth_web_audio_warning(),
+    'waitHTML' => $wait,
+  );
   drupal_add_js($path . '/js/buffer-loader.js');
   drupal_add_js($path . '/js/loop_game.js');
-  drupal_add_js(array('mth_loop_game' => array('soundsPath' => $path . '/sounds', 'warningHTML' => mth_web_audio_warning())), 'setting');
+  drupal_add_js(array('mth_loop_game' => $loop_game_settings), 'setting');
   $content = '<div id="loopGame"></div>';
-  $content .= '<div id="ready"><p>' . t('Wait... Loading...') . '</p></div>';
+  $content .= '<div id="ready">' . $wait . '</div>';
   $content .= '<div id="controls"><div id="start_stop"></div><div id="tempo"></div></div>';
   return $content;
 }

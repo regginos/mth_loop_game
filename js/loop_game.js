@@ -13,9 +13,16 @@ var loopGame = {
   pattern: [],
   context: null,
   soundsPath: '', //TODO: think of a logical stucture for the sounds directory
+  waitHTML: '',
   warningHTML: '',
   timeId: null,
 };
+
+loopGame.exportLoop = function() {
+  var string = JSON.stringify(loopGame, ['loopLength','notes','pattern','tempo']);
+  var newWindow = window.open('','','width=400,height=300');
+  newWindow.document.write(string);
+}
 
 jQuery(document).ready(function() {
   /*
@@ -29,8 +36,54 @@ jQuery(document).ready(function() {
   */
   var importedSettings = Drupal.settings.mth_loop_game;
   loopGame.importSettings(importedSettings);
-  loopGame.init();
+  window.AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!window.AudioContext) {
+    //alert(Drupal.t('Your browser most probably does not support web audio.'));
+    var newElem = document.createElement('div');
+    newElem.innerHTML = loopGame.warningHTML;
+    var elem = document.getElementById('ready');
+    elem.appendChild(newElem);
+  }
+  else {
+    loopGame.context = new AudioContext();
+    loopGame.init();
+  }
 });
+
+loopGame.processNewForm = function(form) {
+  var set = {};
+  for (var i = 0; i < form.length; i++) {
+    switch (form[i].name) {
+      case 'notes': loopGame.setNotes(form[i].value); break;
+      case 'loopLength': loopGame.setLoopLength(form[i].value); break;
+    }
+  }
+  loopGame.makeNewLoop();
+}
+
+loopGame.setNotes = function(notesString) {
+  //TODO: do some validation
+  var arr = notesString.split(',');
+  for (var i = 0; i < arr.length; i++) {
+    arr[i] = arr[i].trim();
+  }
+  loopGame.notes = arr;
+}
+
+loopGame.setLoopLength = function(string) {
+  loopGame.loopLength = string;
+}
+
+loopGame.makeNewLoop = function(settings) {
+  if (arguments.length > 0) {
+    loopGame.importSettings(settings);
+  }
+  loopGame.stopLoop();
+  document.getElementById('ready').innerHTML = loopGame.waitHTML;
+  document.getElementById('loopGame').innerHTML = '';
+  document.getElementById('tempo').innerHTML = '';
+  loopGame.init();
+}
 
 loopGame.importSettings = function(settings) {
   for (prop in settings) {
@@ -40,26 +93,61 @@ loopGame.importSettings = function(settings) {
   }
 }
 
-loopGame.init = function() {
-  window.AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!window.AudioContext) {
-    //alert(Drupal.t('Your browser most probably does not support web audio.'));
-    var newElem = document.createElement('div');
-    newElem.innerHTML = loopGame.warningHTML;
-    var elem = document.getElementById('ready');
-    elem.appendChild(newElem);
+loopGame.createFormCustomize = function() {
+  var text = '<p><br/><br/>Customize the loop (make changes and then click "Make new loop"):</p>';
+  text += '<form id="form_new_loop">';
+  text += '<table>';
+  text += '<tr><td>Loop length (how many beats):</td><td><input type="text" name="loopLength" value="' + loopGame.loopLength + '"></td></tr>';
+  text += '<tr><td>Notes (comma separated values 21-109, kick, snare, hihat, tom1, tom2, tom3):</td><td><input type="text" name="notes" value="' + loopGame.notes.toString() + '"></td></tr>';
+  text += '<tr><td>Tempo:</td><td><input type="range" name="tempo" min="40" max="200" value="80" onchange="loopGame.updateTempo(this.value);"><span id="tempoValue">80</span></td></tr>';
+  text += '</table>';
+  text += '<input type="button" value="Make new loop" onclick="loopGame.processNewForm(this.form);">';
+  text += '<input type="button" value="Export loop" onclick="loopGame.exportLoop();">';
+  text += '</form>';
+  var newElem = document.createElement('div');
+  newElem.innerHTML = text;
+  var elem = document.getElementById('controls');
+  elem.appendChild(newElem);
+}
+
+loopGame.setNotesURL = function() {
+  for (var i = 0; i < loopGame.notes.length; i++) {
+    switch (loopGame.notes[i]) {
+      case 'kick': 
+        var url = loopGame.soundsPath + '/drum_kit/kick.wav';
+        break;
+      case 'hihat':
+        var url = loopGame.soundsPath + '/drum_kit/hihat.wav';
+        break;
+      case 'snare':
+        var url = loopGame.soundsPath + '/drum_kit/snare.wav';
+        break;
+      case 'tom1':
+        var url = loopGame.soundsPath + '/drum_kit/tom1.wav';
+        break;
+      case 'tom2':
+        var url = loopGame.soundsPath + '/drum_kit/tom2.wav';
+        break;
+      case 'tom3':
+        var url = loopGame.soundsPath + '/drum_kit/tom3.wav';
+        break;
+      default:
+        var url = loopGame.soundsPath + '/notes_piano_mp3/p' + loopGame.notes[i] + '.mp3';
+        break;
+    }
+    loopGame.notesURL[i] = url;
   }
+}
+
+loopGame.init = function() {
   for (var i = 0; i < loopGame.notes.length; i++) {
     loopGame.pattern[i] = [];
     for (var j = 0; j < loopGame.loopLength; j++) {
-      loopGame.pattern[i][j] = false;
+      loopGame.pattern[i][j] = 0;
     }
   }
-  for (var i = 0; i < loopGame.notes.length; i++) {
-    var url = loopGame.soundsPath + '/notes_piano_mp3/p' + loopGame.notes[i] + '.mp3';
-    loopGame.notesURL.push(url);
-  }
-  loopGame.context = new AudioContext();
+  loopGame.pattern.length = loopGame.notes.length; //a "smart" way to delete extra items
+  loopGame.setNotesURL();
   bufferLoader = new BufferLoader(
     loopGame.context,
     loopGame.notesURL,
@@ -70,12 +158,14 @@ loopGame.init = function() {
 
 loopGame.finishedLoading = function(bufferList) {
   for (var i = 0; i < loopGame.notes.length; i++) {
-    loopGame.BUFFERS.push(bufferList[i]);
+    loopGame.BUFFERS[i] = bufferList[i];
   }
   loopGame.showReady();
   loopGame.createForm();
-  loopGame.createTempoControl();
   loopGame.startLoop();
+  if (!document.getElementById('form_new_loop')) {
+    loopGame.createFormCustomize();
+  }
 }
 
 loopGame.createForm = function() {
@@ -97,10 +187,6 @@ loopGame.createForm = function() {
 loopGame.showReady = function() {
   var r = document.getElementById('ready');
   r.innerHTML = '<p>READY!</p><p>click on some checkboxes. Make sure your speakers are on.</p>';
-}
-
-loopGame.createTempoControl = function() {
-  document.getElementById('tempo').innerHTML = 'Tempo: <input type="range" min="40" max="200" value="80" onchange="loopGame.updateTempo(this.value);"><span id="tempoValue">80</span>';
 }
 
 loopGame.nextBeat = function() {
@@ -150,7 +236,7 @@ loopGame.playSound = function(buffer, time) {
 }
 
 loopGame.updateBeat = function(row,beat,value) {
-  loopGame.pattern[row][beat] = value;
+  loopGame.pattern[row][beat] = (value) ? 1 : 0;
 }
 
 loopGame.updateTempo = function(value) {
