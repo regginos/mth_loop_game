@@ -17,7 +17,7 @@ function mth_loop_game_get_version() {
  */
 function mth_loop_game_help($path, $args) {
   if ($path == 'admin/help#loop_game') {
-    return '<p>' . t('This module produces a pages with loop game.') . '</p>';
+    return '<p>' . t('This module produces a page with loop game.') . '</p>';
   }
 }
 
@@ -37,7 +37,7 @@ function mth_loop_game_menu() {
 
 function mth_loop_game_main_page() {
   $path = drupal_get_path('module', 'mth_loop_game');
-  $wait = '<p>' . t('Wait... Loading...') . '</p>';
+  $wait = '<p id="wait">' . t('Wait... Loading...') . '</p>';
   $loop_game_settings = array(
     'soundsPath' => $path . '/sounds',
     'warningHTML' => mth_web_audio_warning(),

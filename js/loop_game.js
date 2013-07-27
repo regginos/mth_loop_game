@@ -15,8 +15,19 @@ var loopGame = {
   soundsPath: '', //TODO: think of a logical stucture for the sounds directory
   waitHTML: '',
   warningHTML: '',
+  beatColor: '#dddddd',
+  currentBeatColor: '#757575',
   timeId: null,
 };
+
+loopGame.markCurrentBeat = function() {
+  jQuery('.beat-' + loopGame.currentBeat).css('background-color', loopGame.currentBeatColor);
+}
+
+loopGame.unmarkPreviousBeat = function() {
+  var previous = (loopGame.currentBeat) ? loopGame.currentBeat - 1 : loopGame.loopLength - 1;
+  jQuery('.beat-' + (previous)).css('background-color', loopGame.beatColor);
+}
 
 loopGame.exportLoop = function() {
   var string = JSON.stringify(loopGame, ['loopLength','notes','pattern','tempo']);
@@ -174,7 +185,7 @@ loopGame.createForm = function() {
   for (var i = 0; i < loopGame.notes.length; i++) {
     text += '<tr>';
     for (var j = 0; j < loopGame.loopLength; j++) {
-      text += '<td>';
+      text += '<td class="beat-' + j + '" style="background:' + loopGame.beatColor + ';">';
       text += '<input type="checkbox" onchange="loopGame.updateBeat(' + i + ',' + j + ',this.checked)">';
       text += '</td>';
     }
@@ -202,6 +213,8 @@ loopGame.playBeat = function() {
       loopGame.playNote(i);
     }
   }
+  loopGame.unmarkPreviousBeat();
+  loopGame.markCurrentBeat();
   loopGame.nextBeat();
 }
 
@@ -217,6 +230,7 @@ loopGame.startLoop = function() {
 loopGame.stopLoop = function() {
   if (loopGame.isLoopPlaying) {
     clearInterval(loopGame.timeId);
+    loopGame.unmarkPreviousBeat();
     loopGame.currentBeat = 0;
     loopGame.isLoopPlaying = false;
     document.getElementById('start_stop').innerHTML = '<input type="button" onclick="loopGame.startLoop()" value="Play">';
