@@ -48,7 +48,7 @@ function mth_loop_game_main_page() {
   drupal_add_js(array('mth_loop_game' => $loop_game_settings), 'setting');
   $content = '<div id="loopGame"></div>';
   $content .= '<div id="ready">' . $wait . '</div>';
-  $content .= '<div id="controls"><div id="start_stop"></div><div id="tempo"></div></div>';
+  $content .= '<div id="controls"><div id="start_stop"></div><div id="customize"></div></div>';
   return $content;
 }
 

@@ -30,7 +30,13 @@ loopGame.unmarkPreviousBeat = function() {
 }
 
 loopGame.exportLoop = function() {
-  var string = JSON.stringify(loopGame, ['loopLength','notes','pattern','tempo']);
+  var string = JSON.stringify(loopGame, ['loopLength','notes','tempo','pattern']);
+/*
+  string = string.replace('loopLength','l');
+  string = string.replace('notes','n');
+  string = string.replace('tempo','t');
+  string = string.replace('pattern','p');
+*/
   var newWindow = window.open('','','width=400,height=300');
   newWindow.document.write(string);
 }
@@ -42,6 +48,7 @@ jQuery(document).ready(function() {
   It can be replaced with something like this:
   var importedSettings = {
     soundsPath: 'path/to/directory/with/sounds',
+    waitHTML: 'Loading...',
     warningHTML: '<h1>Message to user</h1><p>How stupid can you be, not to use a browser that supports <a href="http://link.to.some/web/page">web audio</a>!</p>',
   }
   */
@@ -50,10 +57,7 @@ jQuery(document).ready(function() {
   window.AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!window.AudioContext) {
     //alert(Drupal.t('Your browser most probably does not support web audio.'));
-    var newElem = document.createElement('div');
-    newElem.innerHTML = loopGame.warningHTML;
-    var elem = document.getElementById('ready');
-    elem.appendChild(newElem);
+    document.getElementById('ready').innerHTML = loopGame.warningHTML;
   }
   else {
     loopGame.context = new AudioContext();
@@ -82,7 +86,7 @@ loopGame.setNotes = function(notesString) {
 }
 
 loopGame.setLoopLength = function(string) {
-  loopGame.loopLength = string;
+  loopGame.loopLength = parseInt(string, 10);
 }
 
 loopGame.makeNewLoop = function(settings) {
@@ -92,7 +96,6 @@ loopGame.makeNewLoop = function(settings) {
   loopGame.stopLoop();
   document.getElementById('ready').innerHTML = loopGame.waitHTML;
   document.getElementById('loopGame').innerHTML = '';
-  document.getElementById('tempo').innerHTML = '';
   loopGame.init();
 }
 
@@ -105,7 +108,7 @@ loopGame.importSettings = function(settings) {
 }
 
 loopGame.createFormCustomize = function() {
-  var text = '<p><br/><br/>Customize the loop (make changes and then click "Make new loop"):</p>';
+  var text = '<p><br/>Customize the loop (make changes and then click "Make new loop"):</p>';
   text += '<form id="form_new_loop">';
   text += '<table>';
   text += '<tr><td>Loop length (how many beats):</td><td><input type="text" name="loopLength" value="' + loopGame.loopLength + '"></td></tr>';
@@ -115,10 +118,7 @@ loopGame.createFormCustomize = function() {
   text += '<input type="button" value="Make new loop" onclick="loopGame.processNewForm(this.form);">';
   text += '<input type="button" value="Export loop" onclick="loopGame.exportLoop();">';
   text += '</form>';
-  var newElem = document.createElement('div');
-  newElem.innerHTML = text;
-  var elem = document.getElementById('controls');
-  elem.appendChild(newElem);
+  document.getElementById('customize').innerHTML = text;
 }
 
 loopGame.setNotesURL = function() {
@@ -174,9 +174,7 @@ loopGame.finishedLoading = function(bufferList) {
   loopGame.showReady();
   loopGame.createForm();
   loopGame.startLoop();
-  if (!document.getElementById('form_new_loop')) {
-    loopGame.createFormCustomize();
-  }
+  loopGame.createFormCustomize();
 }
 
 loopGame.createForm = function() {
