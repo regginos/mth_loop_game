@@ -1,0 +1,107 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function mth_loop_game_schema() {
+  $schema['mth_loop_game_loops'] = array(
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => "The loop's ID",
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "User's {users}.uid that created this loop",
+      ),
+      'hoop' => array(
+        'description' => 'The loop as a JSON string',
+        'type' => 'varchar',
+        'length' => 5000,
+        'not null' => FALSE,
+      ),
+      'name' => array(
+        'description' => 'A name for the loop',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the loop was created',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'last_viewed' => array(
+        'description' => 'The Unix timestamp when the loop was last time viewed',
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'views' => array(
+        'description' => 'how many times the loop was viewed',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'rating' => array(
+        'description' => 'The loops rating.',
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array(
+      'id'
+    ),
+    'indexes' => array(
+      'id' => array('id'),
+      'uid' => array('uid'),
+      'created' => array('created'),
+      'last_viewed' => array('last_viewed'),
+      'views' => array('views'),
+      'rating' => array('rating'),
+    ),
+  );
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+
+function mth_loop_game_install() {
+  $demos = array();
+  $demos[] = array(
+    'hoop' => '{"l":16,"n":[60,62,64,67,69,72],"t":80,"p":[[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0]]}',
+    'name' => 'Demo 1',
+    'created' => REQUEST_TIME,
+  );
+  $demos[] = array(
+    'hoop' => '{"l":14,"n":[60,62,64,65,67,69,71,72],"t":80,"p":[[1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,1,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0,1,0,0,0,1],[1,0,0,0,0,0,1,0,0,0,1,1,0,1],[0,0,0,0,0,0,0,1,0,1,0,0,0,0],[0,0,1,0,1,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0]]}',
+    'name' => 'Demo 2',
+    'created' => REQUEST_TIME,
+  );
+  $demos[] = array(
+    'hoop' => '{"l":16,"n":["kick","snare","hihat","tom1","tom2","tom3"],"t":80,"p":[[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1],[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}',
+    'name' => 'Demo 3',
+    'created' => REQUEST_TIME,
+  );
+  foreach ($demos as $demo) {
+    //drupal_write_record('mth_loop_game_loops', $demo);
+    $loop = db_insert('mth_loop_game_loops')
+      ->fields($demo)
+      ->execute();
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function mth_loop_game_uninstall() {
+  //drupal_set_message(t("The mth_loop_game module has been uninstalled."));
+}

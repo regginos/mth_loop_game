@@ -13,11 +13,16 @@ var loopGame = {
   pattern: [],
   context: null,
   soundsPath: '', //TODO: think of a logical stucture for the sounds directory
+  loadPath: '',
   waitHTML: '',
   warningHTML: '',
   beatColor: '#dddddd',
   currentBeatColor: '#757575',
   timeId: null,
+  demos: [
+    {"loopLength":16,"notes":[60,62,64,67,69,72],"tempo":80,"pattern":[[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0]]},
+    {"loopLength":14,"notes":["60","62","64","65","67","69","71","72"],"tempo":80,"pattern":[[1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,1,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0,1,0,0,0,1],[1,0,0,0,0,0,1,0,0,0,1,1,0,1],[0,0,0,0,0,0,0,1,0,1,0,0,0,0],[0,0,1,0,1,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0]]},
+  ],
 };
 
 loopGame.markCurrentBeat = function() {
@@ -61,12 +66,12 @@ jQuery(document).ready(function() {
   }
   else {
     loopGame.context = new AudioContext();
+    loopGame.setPattern();
     loopGame.init();
   }
 });
 
 loopGame.processNewForm = function(form) {
-  var set = {};
   for (var i = 0; i < form.length; i++) {
     switch (form[i].name) {
       case 'notes': loopGame.setNotes(form[i].value); break;
@@ -90,12 +95,48 @@ loopGame.setLoopLength = function(string) {
 }
 
 loopGame.makeNewLoop = function(settings) {
+/*
   if (arguments.length > 0) {
     loopGame.importSettings(settings);
   }
+*/
   loopGame.stopLoop();
   document.getElementById('ready').innerHTML = loopGame.waitHTML;
   document.getElementById('loopGame').innerHTML = '';
+  loopGame.setPattern();
+  loopGame.init();
+}
+
+loopGame.loadFromServer = function(url) {
+  var request = new XMLHttpRequest();
+  request.open("GET", url, true);
+  //request.responseType = "arraybuffer";
+  request.onload = function() {
+    //alert(request.response);
+    loopGame.loadLoop(JSON.parse(request.response));
+  }
+  request.onerror = function() {
+    alert('Error: failed loading loop from server.');
+  }
+  request.send();
+}
+
+loopGame.proccesLoadForm = function(form) {
+  for (var i = 0; i < form.length; i++) {
+    if (form[i].name === 'loop_settings') {
+      //TODO: do some validation
+      var loop = JSON.parse(form[i].value);
+    }
+  }
+  loopGame.loadLoop(loop);
+}
+
+loopGame.loadLoop = function(loop) {
+  loopGame.stopLoop();
+  document.getElementById('ready').innerHTML = loopGame.waitHTML;
+  document.getElementById('loopGame').innerHTML = '';
+
+  loopGame.importSettings(loop);
   loopGame.init();
 }
 
@@ -107,6 +148,26 @@ loopGame.importSettings = function(settings) {
   }
 }
 
+loopGame.createFormSaveRetrieve = function() {
+  var text = '<form id="form_save_retrieve">';
+  text += '<input type="button" value="Save Loop Online" onclick="alert(\'to be done\')">';
+
+  var path = loopGame.loadPath + '/3';
+  text += '<select name="server_loops"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>';
+  text += '<input type="button" value="Import Loop" onclick="loopGame.loadFromServer(\'' + path + '\');">';
+  text += '</form>';
+  document.getElementById('save_loop').innerHTML = text;
+}
+
+loopGame.createFormLoad = function() {
+  var text = '<form id="form_load">';
+  text += '<input type="button" value="Export loop" onclick="loopGame.exportLoop();">';
+  text += '<input type="textarea" name="loop_settings">';
+  text += '<input type="button" value="Load Loop" onclick="loopGame.proccesLoadForm(this.form);">';
+  text += '</form>';
+  document.getElementById('load_loop').innerHTML = text;
+}
+
 loopGame.createFormCustomize = function() {
   var text = '<p><br/>Customize the loop (make changes and then click "Make new loop"):</p>';
   text += '<form id="form_new_loop">';
@@ -116,7 +177,6 @@ loopGame.createFormCustomize = function() {
   text += '<tr><td>Tempo:</td><td><input type="range" name="tempo" min="40" max="200" value="80" onchange="loopGame.updateTempo(this.value);"><span id="tempoValue">80</span></td></tr>';
   text += '</table>';
   text += '<input type="button" value="Make new loop" onclick="loopGame.processNewForm(this.form);">';
-  text += '<input type="button" value="Export loop" onclick="loopGame.exportLoop();">';
   text += '</form>';
   document.getElementById('customize').innerHTML = text;
 }
@@ -150,14 +210,23 @@ loopGame.setNotesURL = function() {
   }
 }
 
-loopGame.init = function() {
-  for (var i = 0; i < loopGame.notes.length; i++) {
-    loopGame.pattern[i] = [];
-    for (var j = 0; j < loopGame.loopLength; j++) {
-      loopGame.pattern[i][j] = 0;
+loopGame.setPattern = function(pattern) {
+  if (arguments.length > 0) {
+    loopGame.pattern = pattern;
+  }
+  else {
+    loopGame.pattern = [];
+    for (var i = 0; i < loopGame.notes.length; i++) {
+      loopGame.pattern[i] = [];
+      for (var j = 0; j < loopGame.loopLength; j++) {
+        loopGame.pattern[i][j] = 0;
+      }
     }
   }
-  loopGame.pattern.length = loopGame.notes.length; //a "smart" way to delete extra items
+}
+
+loopGame.init = function() {
+  //alert(loopGame.pattern);
   loopGame.setNotesURL();
   bufferLoader = new BufferLoader(
     loopGame.context,
@@ -175,6 +244,8 @@ loopGame.finishedLoading = function(bufferList) {
   loopGame.createForm();
   loopGame.startLoop();
   loopGame.createFormCustomize();
+  loopGame.createFormLoad();
+  loopGame.createFormSaveRetrieve();
 }
 
 loopGame.createForm = function() {
@@ -184,7 +255,9 @@ loopGame.createForm = function() {
     text += '<tr>';
     for (var j = 0; j < loopGame.loopLength; j++) {
       text += '<td class="beat-' + j + '" style="background:' + loopGame.beatColor + ';">';
-      text += '<input type="checkbox" onchange="loopGame.updateBeat(' + i + ',' + j + ',this.checked)">';
+      text += '<input type="checkbox"';
+      text += (loopGame.pattern[i][j]) ? ' checked="checked"' : '';
+      text += ' onchange="loopGame.updateBeat(' + i + ',' + j + ',this.checked)">';
       text += '</td>';
     }
     text += '</tr>';

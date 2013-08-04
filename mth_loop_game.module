@@ -7,7 +7,11 @@
  * Code: regginos
  * 
  */
-
+/*
+TODO: when making new loop or loading a loop either locally or from server,
+check for sounds that are already loaded and use them insted of loading all sounds from scratch.
+(Some kind of registry of sounds is propably needed).
+*/
 function mth_loop_game_get_version() {
   return '0.1';
 }
@@ -32,30 +36,84 @@ function mth_loop_game_menu() {
     'access callback' => TRUE,
     'expanded' => TRUE,
   );
+  $items[$module_path . '/load'] = array(
+    'title' => 'Load Loop',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'mth_loop_game_load',
+    'page arguments' => array(2),
+    'access callback' => TRUE,
+  );
   return $items;
 }
 
 function mth_loop_game_main_page() {
   $path = drupal_get_path('module', 'mth_loop_game');
-  $wait = '<p id="wait">' . t('Wait... Loading...') . '</p>';
   $loop_game_settings = array(
     'soundsPath' => $path . '/sounds',
-    'warningHTML' => mth_web_audio_warning(),
-    'waitHTML' => $wait,
+    'loadPath' => url('loop_game/load'),
+    'waitHTML' => mth_loop_game_wait_notification(),
+    'warningHTML' => mth_loop_game_web_audio_warning(),
   );
+  drupal_add_js(array('mth_loop_game' => $loop_game_settings), 'setting');
   drupal_add_js($path . '/js/buffer-loader.js');
   drupal_add_js($path . '/js/loop_game.js');
-  drupal_add_js(array('mth_loop_game' => $loop_game_settings), 'setting');
   $content = '<div id="loopGame"></div>';
-  $content .= '<div id="ready">' . $wait . '</div>';
-  $content .= '<div id="controls"><div id="start_stop"></div><div id="customize"></div></div>';
+  $content .= '<div id="ready">' . mth_loop_game_wait_notification() . '</div>';
+  $content .= '<div id="controls">';
+  $content .= '<div id="start_stop"></div>';
+  $content .= '<div id="customize" style="border-style:solid;border-width:1px;"></div>'; //styling is here during development. To be removed later
+  $content .= '<div id="load_loop" style="background:#cacaca;"></div>'; //styling is here during development. To be removed later
+  $content .= '<div id="save_loop" style="background:#bababa;"></div>'; //styling is here during development. To be removed later
+  $content .= '</div>';
   return $content;
 }
 
-function mth_web_audio_warning() {
+function mth_loop_game_wait_notification() {
+  $text = '<p id="wait">' . t('Wait... Loading...') . '</p>';
+  return $text;
+}
+
+function mth_loop_game_web_audio_warning() {
   $text = '<p style="color:red;">' . t('WARNING! It seems, your browser does not support web audio.') . '</p>';
   $text .= '<p>' . t('<a href="http://www.w3.org/TR/webaudio/">Web audio</a> is required for the loop game to work correctly.') . '</p>';
   $text .= '<p>' . t('We recommend <a href="http://www.google.com/chrome">Chrome browser</a>, because it supports web audio.') . '</p>';
   $text .= '<p>' . t('Safari supports web audio since version 6.0 and Opera since version 15.0. Support for Firefox is planned from version 23.0.') . '</p>';
   return $text;
+}
+
+function mth_loop_game_load($loop_id) {
+  $entry  = array('id' => $loop_id);
+  $loop_record = mth_loop_game_entry_load($entry);
+  if (!$loop_record[0]) {
+    echo 'Error: loop entry ' . $loop_id . ' not found!';
+  }
+  else {
+    $short = array('"l"', '"n"', '"t"', '"p"');
+    $long   = array('"loopLength"', '"notes"', '"tempo"', '"pattern"');
+    echo str_replace($short, $long, $loop_record[0]->hoop);
+  }
+}
+
+/**
+ * Read from the database using a filter array.
+ *
+ * @param $entry
+ *   An array containing all the fields used to search the entries in the table.
+ *
+ * @return
+ *   An object containing the loaded entries if found.
+ *
+ */
+function mth_loop_game_entry_load($entry = array()) {
+  $select = db_select('mth_loop_game_loops', 'loops')
+    ->fields('loops');
+  foreach ($entry as $field => $value) {
+    $select->condition($field, $value);
+  }
+  return $select->execute()->fetchAll();
+}
+
+function mth_loop_game_get_user_loops($uid){
+  $entry  = array('uid' => $uid);
+  return mth_loop_game_entry_load($entry);
 }
