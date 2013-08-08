@@ -14,37 +14,15 @@ var loopGame = {
   context: null,
   soundsPath: '', //TODO: think of a logical stucture for the sounds directory
   loadPath: '',
+  savePath: '',
+  noslPath: '',
+  nosl: 3,
   waitHTML: '',
   warningHTML: '',
-  beatColor: '#dddddd',
-  currentBeatColor: '#757575',
+  beatColor: '',
+  currentBeatColor: '',
   timeId: null,
-  demos: [
-    {"loopLength":16,"notes":[60,62,64,67,69,72],"tempo":80,"pattern":[[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0]]},
-    {"loopLength":14,"notes":["60","62","64","65","67","69","71","72"],"tempo":80,"pattern":[[1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,1,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,1,0,1,0,0,0,1],[1,0,0,0,0,0,1,0,0,0,1,1,0,1],[0,0,0,0,0,0,0,1,0,1,0,0,0,0],[0,0,1,0,1,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0]]},
-  ],
 };
-
-loopGame.markCurrentBeat = function() {
-  jQuery('.beat-' + loopGame.currentBeat).css('background-color', loopGame.currentBeatColor);
-}
-
-loopGame.unmarkPreviousBeat = function() {
-  var previous = (loopGame.currentBeat) ? loopGame.currentBeat - 1 : loopGame.loopLength - 1;
-  jQuery('.beat-' + (previous)).css('background-color', loopGame.beatColor);
-}
-
-loopGame.exportLoop = function() {
-  var string = JSON.stringify(loopGame, ['loopLength','notes','tempo','pattern']);
-/*
-  string = string.replace('loopLength','l');
-  string = string.replace('notes','n');
-  string = string.replace('tempo','t');
-  string = string.replace('pattern','p');
-*/
-  var newWindow = window.open('','','width=400,height=300');
-  newWindow.document.write(string);
-}
 
 jQuery(document).ready(function() {
   /*
@@ -66,7 +44,9 @@ jQuery(document).ready(function() {
   }
   else {
     loopGame.context = new AudioContext();
-    loopGame.setPattern();
+    if (loopGame.pattern.length === 0) {
+      loopGame.setPattern();
+    }
     loopGame.init();
   }
 });
@@ -107,13 +87,49 @@ loopGame.makeNewLoop = function(settings) {
   loopGame.init();
 }
 
+loopGame.saveOnServer = function() {
+  var string = JSON.stringify(loopGame, ['loopLength','notes','tempo','pattern']);
+  var request = new XMLHttpRequest();
+  var url =  loopGame.savePath + '/' + string;
+  request.open("GET", url, true);
+  request.onload = function() {
+    alert(request.response);
+    loopGame.getNumberOfLoopsOnServer();
+  }
+  request.onerror = function() {
+    alert('Error: failed saving loop on server.');
+  }
+  request.send();
+}
+
+loopGame.proccesFormRetrieve = function(form) {
+  for (var i = 0; i < form.length; i++) {
+    if (form[i].name === 'server_loops') {
+      var value = form[i].value;
+    }
+  }
+  if (isNumber(value)) {
+    var path = loopGame.loadPath + '/' + value;
+    loopGame.loadFromServer(path);
+  }
+  else {
+    alert('invalid input');
+  }
+  function isNumber(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+  }
+}
+
 loopGame.loadFromServer = function(url) {
   var request = new XMLHttpRequest();
   request.open("GET", url, true);
-  //request.responseType = "arraybuffer";
   request.onload = function() {
-    //alert(request.response);
-    loopGame.loadLoop(JSON.parse(request.response));
+    if (request.response.charAt(0) != '{') { //TODO: do a better check for correct response, than checking first character.
+      alert(request.response);
+    }
+    else {
+      loopGame.loadLoop(JSON.parse(request.response));
+    }
   }
   request.onerror = function() {
     alert('Error: failed loading loop from server.');
@@ -129,6 +145,18 @@ loopGame.proccesLoadForm = function(form) {
     }
   }
   loopGame.loadLoop(loop);
+}
+
+loopGame.exportLoop = function() {
+  var string = JSON.stringify(loopGame, ['loopLength','notes','tempo','pattern']);
+/*
+  string = string.replace('loopLength','l');
+  string = string.replace('notes','n');
+  string = string.replace('tempo','t');
+  string = string.replace('pattern','p');
+*/
+  var newWindow = window.open('','','width=400,height=300');
+  newWindow.document.write(string);
 }
 
 loopGame.loadLoop = function(loop) {
@@ -148,13 +176,27 @@ loopGame.importSettings = function(settings) {
   }
 }
 
+loopGame.getNumberOfLoopsOnServer = function() {
+  var url = loopGame.noslPath;
+  var request = new XMLHttpRequest();
+  request.open("GET", url, true);
+  request.onload = function() {
+    loopGame.nosl = request.response;
+    loopGame.createFormSaveRetrieve();
+  }
+  request.onerror = function() {
+    alert('Error: failed getting number of saved loops from server.');
+  }
+  request.send();
+}
+
 loopGame.createFormSaveRetrieve = function() {
   var text = '<form id="form_save_retrieve">';
-  text += '<input type="button" value="Save Loop Online" onclick="alert(\'to be done\')">';
-
-  var path = loopGame.loadPath + '/3';
-  text += '<select name="server_loops"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>';
-  text += '<input type="button" value="Import Loop" onclick="loopGame.loadFromServer(\'' + path + '\');">';
+  text += '<input type="button" value="Save Loop Online" onclick="loopGame.saveOnServer();">';
+  text += '<input type="text" name="server_loops" value="type a number (the loop ID)">';
+  //text += '<input type="number" name="server_loops" min="1" max="' + loopGame.nosl + '">';
+  //text += '<select name="server_loops"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>';
+  text += '<input type="button" value="Retrieve Loop" onclick="loopGame.proccesFormRetrieve(this.form);">';
   text += '</form>';
   document.getElementById('save_loop').innerHTML = text;
 }
@@ -163,7 +205,7 @@ loopGame.createFormLoad = function() {
   var text = '<form id="form_load">';
   text += '<input type="button" value="Export loop" onclick="loopGame.exportLoop();">';
   text += '<input type="textarea" name="loop_settings">';
-  text += '<input type="button" value="Load Loop" onclick="loopGame.proccesLoadForm(this.form);">';
+  text += '<input type="button" value="Import Loop" onclick="loopGame.proccesLoadForm(this.form);">';
   text += '</form>';
   document.getElementById('load_loop').innerHTML = text;
 }
@@ -172,7 +214,7 @@ loopGame.createFormCustomize = function() {
   var text = '<p><br/>Customize the loop (make changes and then click "Make new loop"):</p>';
   text += '<form id="form_new_loop">';
   text += '<table>';
-  text += '<tr><td>Loop length (how many beats):</td><td><input type="text" name="loopLength" value="' + loopGame.loopLength + '"></td></tr>';
+  text += '<tr><td>Loop length (max 32):</td><td><input type="number" name="loopLength" min="2" max="32" value="' + loopGame.loopLength + '"></td></tr>';//<input type="text" name="loopLength" value="' + loopGame.loopLength + '"> 
   text += '<tr><td>Notes (comma separated values 21-109, kick, snare, hihat, tom1, tom2, tom3):</td><td><input type="text" name="notes" value="' + loopGame.notes.toString() + '"></td></tr>';
   text += '<tr><td>Tempo:</td><td><input type="range" name="tempo" min="40" max="200" value="80" onchange="loopGame.updateTempo(this.value);"><span id="tempoValue">80</span></td></tr>';
   text += '</table>';
@@ -226,7 +268,6 @@ loopGame.setPattern = function(pattern) {
 }
 
 loopGame.init = function() {
-  //alert(loopGame.pattern);
   loopGame.setNotesURL();
   bufferLoader = new BufferLoader(
     loopGame.context,
@@ -241,14 +282,14 @@ loopGame.finishedLoading = function(bufferList) {
     loopGame.BUFFERS[i] = bufferList[i];
   }
   loopGame.showReady();
-  loopGame.createForm();
+  loopGame.createFormGame();
   loopGame.startLoop();
   loopGame.createFormCustomize();
   loopGame.createFormLoad();
   loopGame.createFormSaveRetrieve();
 }
 
-loopGame.createForm = function() {
+loopGame.createFormGame = function() {
   var text = '';
   text += '<table><form>';
   for (var i = 0; i < loopGame.notes.length; i++) {
@@ -334,143 +375,11 @@ loopGame.updateTempo = function(value) {
   }
 }
 
-
-/*
-var game = new LoopGame('sites/all/modules/mth_loop_game/sounds');
-var timeId; //the timeOut or setInterval ID
-//window.onload = game.init();
-
-function LoopGame(path) { //constructor function
-  this.loopLength = 16;
-  this.currentBeat = 0;
-  this.isLoopPlaying = false;
-  this.tempo = 80;
-  //this.notes = notes || [60,62,64,67,69,72];
-  this.notes = [60,62,64,67,69,72];
-  this.game = [];
-  for (var i = 0; i < this.notes.length; i++) {
-    this.game[i] = [];
-    for (var j = 0; j < this.loopLength; j++) {
-      this.game[i][j] = (i === 0 && j === 0) ? true : false;
-    }
-  }
-  this.context;
-  this.BUFFERS = [];
-  this.notesURL = [];
-  for (var i = 0; i < this.notes.length; i++) {
-    var url = path + '/notes_piano_mp3/p' + this.notes[i] + '.mp3';
-    this.notesURL.push(url);
-  }
+loopGame.markCurrentBeat = function() {
+  jQuery('.beat-' + loopGame.currentBeat).css('background-color', loopGame.currentBeatColor);
 }
 
-LoopGame.prototype.init = function() {
-  var g = this;
-  window.AudioContext = window.AudioContext || window.webkitAudioContext;
-  this.context = new AudioContext();
-  this.bufferLoader = new BufferLoader(
-    this.context,
-    this.notesURL,
-    function(bufferList) {
-      g.setBuffers(bufferList);
-      g.showReady();
-      g.createForm();
-      g.createTempoControl();
-      g.startLoop();
-    }
-  );
-  this.bufferLoader.load();
+loopGame.unmarkPreviousBeat = function() {
+  var previous = (loopGame.currentBeat) ? loopGame.currentBeat - 1 : loopGame.loopLength - 1;
+  jQuery('.beat-' + (previous)).css('background-color', loopGame.beatColor);
 }
-
-LoopGame.prototype.setBuffers = function(bufferList) {
-  for (var i = 0; i < bufferList.length; i++) {
-    this.BUFFERS.push(bufferList[i]);
-  }
-}
-
-LoopGame.prototype.showReady = function() {
-  var r = document.getElementById('ready');
-  r.innerHTML = '<p>READY!</p><p>click on some checkboxes. Make sure your speakers are on.</p>';
-}
-
-LoopGame.prototype.createForm = function() {
-  var text = '';
-  text += '<table><form>';
-  for (var i = 0; i < this.notes.length; i++) {
-    text += '<tr>';
-    for (var j = 0; j < this.loopLength; j++) {
-      text += '<td>';
-      text += '<input type="checkbox" onchange="game.updateBeat(' + i + ',' + j + ',this.checked)">';
-      text += '</td>';
-    }
-    text += '</tr>';
-  }
-  text += '</form></table>';
-  document.getElementById('loopGame').innerHTML = text;
-}
-
-LoopGame.prototype.createTempoControl = function() {
-  document.getElementById('tempo').innerHTML = 'Tempo: <input type="range" min="30" max="220" value="80" onchange="game.updateTempo(this.value);"><span id="tempoValue">80</span>';
-}
-
-LoopGame.prototype.startLoop = function() {
-  if (!this.isLoopPlaying) {
-    var interval = (60000 / this.tempo) / 4;
-    timeId = setInterval(this.playBeat, interval);
-    this.isLoopPlaying = true;
-    document.getElementById('start_stop').innerHTML = '<input type="button" onclick="game.stopLoop()" value="Stop">';
-  }
-}
-
-LoopGame.prototype.playBeat = function() {
-  alert(this.notes);
-  for (var i = 0; i < this.notes.length; i++) {
-    if (this.game[i][this.currentBeat]) {
-      this.playNote(i);
-    }
-  }
-  this.nextBeat();
-}
-
-LoopGame.prototype.nextBeat = function() {
-  this.currentBeat++;
-  if (this.currentBeat == this.loopLength) {
-    this.currentBeat = 0;
-  }
-}
-
-LoopGame.prototype.stopLoop = function() {
-  if (this.isLoopPlaying) {
-    clearInterval(timeId);
-    this.currentBeat = 0;
-    this.isLoopPlaying = false;
-    document.getElementById('start_stop').innerHTML = '<input type="button" onclick="game.startLoop()" value="Play">';
-  }
-}
-
-LoopGame.prototype.playNote = function(index) {
-  this.playSound(this.BUFFERS[index], 0);
-}
-
-LoopGame.prototype.playSound = function(buffer, time) {
-  var source = this.context.createBufferSource();
-  source.buffer = buffer;
-  source.connect(this.context.destination);
-  if (!source.start) {source.start = source.noteOn;}
-  source.start(time);
-}
-
-LoopGame.prototype.updateBeat = function(row,beat,value) {
-  this.game[row][beat] = value;
-}
-
-LoopGame.prototype.updateTempo = function(value) {
-  this.tempo = value;
-  document.getElementById('tempoValue').innerHTML = this.tempo;
-  if (this.isLoopPlaying) {
-    clearInterval(timeId);
-    var interval = (60000 / this.tempo) / 4;
-    var p = this.playBeat();
-    timeId = setInterval(p, interval);
-  }
-}
-*/

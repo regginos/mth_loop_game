@@ -33,6 +33,7 @@ function mth_loop_game_menu() {
   $items[$module_path] = array(
     'title' => 'Loop game',
     'page callback' => 'mth_loop_game_main_page',
+    'page arguments' => array(1),
     'access callback' => TRUE,
     'expanded' => TRUE,
   );
@@ -43,28 +44,49 @@ function mth_loop_game_menu() {
     'page arguments' => array(2),
     'access callback' => TRUE,
   );
+  $items[$module_path . '/save'] = array(
+    'title' => 'Save Loop',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'mth_loop_game_save',
+    'page arguments' => array(2),
+    'access callback' => TRUE,
+  );
+  $items[$module_path . '/nosl'] = array( //nosl = Number Of Saved Loops
+    'title' => 'Number of saved Loops',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'mth_loop_game_get_number_of_saved_loops',
+    'access callback' => TRUE,
+  );
   return $items;
 }
 
-function mth_loop_game_main_page() {
+function mth_loop_game_main_page($passed_arg = NULL) {
   $path = drupal_get_path('module', 'mth_loop_game');
   $loop_game_settings = array(
     'soundsPath' => $path . '/sounds',
     'loadPath' => url('loop_game/load'),
+    'savePath' => url('loop_game/save'),
+    'noslPath' => url('loop_game/nosl'),
+    'nosl' => mth_loop_game_get_number_of_saved_loops(FALSE),
     'waitHTML' => mth_loop_game_wait_notification(),
     'warningHTML' => mth_loop_game_web_audio_warning(),
+    'beatColor' => '#dddddd',
+    'currentBeatColor' => '#757575',
   );
+  if ($passed_arg && is_numeric($passed_arg)) {
+    $loop_game_settings = array_merge($loop_game_settings, mth_loop_game_load($passed_arg, FALSE));
+  }
   drupal_add_js(array('mth_loop_game' => $loop_game_settings), 'setting');
   drupal_add_js($path . '/js/buffer-loader.js');
   drupal_add_js($path . '/js/loop_game.js');
-  $content = '<div id="loopGame"></div>';
-  $content .= '<div id="ready">' . mth_loop_game_wait_notification() . '</div>';
-  $content .= '<div id="controls">';
-  $content .= '<div id="start_stop"></div>';
-  $content .= '<div id="customize" style="border-style:solid;border-width:1px;"></div>'; //styling is here during development. To be removed later
-  $content .= '<div id="load_loop" style="background:#cacaca;"></div>'; //styling is here during development. To be removed later
-  $content .= '<div id="save_loop" style="background:#bababa;"></div>'; //styling is here during development. To be removed later
-  $content .= '</div>';
+  $content = '<div id="loopGame"></div>' . PHP_EOL;
+  $content .= '<div id="ready">' . mth_loop_game_wait_notification() . '</div>' . PHP_EOL;
+  $content .= '<div id="controls">' . PHP_EOL;
+  $content .= '<div id="start_stop"></div>' . PHP_EOL;
+  $content .= '<div id="customize" style="border-style:solid;border-width:1px;"></div>' . PHP_EOL; //styling is here during development. To be removed later
+  $content .= '<div id="load_loop" style="background:#cacaca;"></div>' . PHP_EOL; //styling is here during development. To be removed later
+  $content .= '<div id="save_loop" style="background:#bababa;"></div>' . PHP_EOL; //styling is here during development. To be removed later
+  $content .= '</div>' . PHP_EOL;
   return $content;
 }
 
@@ -81,16 +103,62 @@ function mth_loop_game_web_audio_warning() {
   return $text;
 }
 
-function mth_loop_game_load($loop_id) {
-  $entry  = array('id' => $loop_id);
-  $loop_record = mth_loop_game_entry_load($entry);
-  if (!$loop_record[0]) {
-    echo 'Error: loop entry ' . $loop_id . ' not found!';
+function mth_loop_game_save($loop) {
+  $long   = array('"loopLength"', '"notes"', '"tempo"', '"pattern"');
+  $short = array('"l"', '"n"', '"t"', '"p"');
+  $loop = str_replace($long, $short, $loop);
+  global $user;
+  $entry = array(
+    'uid' => $user->uid,
+    'hoop' => $loop,
+    'name' => '',
+    'created' => REQUEST_TIME,
+  );
+  if (drupal_write_record('mth_loop_game_loops', $entry)) {
+    echo t('loop saved on server. Use @url to share your loop.', array('@url' => url(('loop_game/' . $entry['id']), array('absolute' => TRUE))));
   }
   else {
-    $short = array('"l"', '"n"', '"t"', '"p"');
-    $long   = array('"loopLength"', '"notes"', '"tempo"', '"pattern"');
-    echo str_replace($short, $long, $loop_record[0]->hoop);
+    echo t('error saving loop on server');
+  }
+}
+
+function mth_loop_game_get_number_of_saved_loops($echo = TRUE) {
+  $select = db_select('mth_loop_game_loops', 'loops')
+    ->fields('loops');
+  $result = $select->execute()->fetchAll();
+  if ($echo) {
+    echo count($result);
+  }
+  else {
+    return count($result);
+  }
+}
+
+function mth_loop_game_load($loop_id, $echo = TRUE) {
+  $entry  = array('id' => $loop_id);
+  $loop_record = mth_loop_game_entry_load($entry);
+  if (!isset($loop_record[0])) {
+    if ($echo) {
+      echo 'Error: loop entry ' . $loop_id . ' not found!';
+    }
+    else {
+      return FALSE;
+    }
+  }
+  else {
+    if ($echo) {
+      $short = array('"l"', '"n"', '"t"', '"p"');
+      $long   = array('"loopLength"', '"notes"', '"tempo"', '"pattern"');
+      echo str_replace($short, $long, $loop_record[0]->hoop);
+    }
+    else {
+      $loop = json_decode($loop_record[0]->hoop);
+      $loop_game_settings['loopLength'] = $loop->l;
+      $loop_game_settings['notes'] = $loop->n;
+      $loop_game_settings['tempo'] = $loop->t;
+      $loop_game_settings['pattern'] = $loop->p;
+      return $loop_game_settings;
+    }
   }
 }
 

@@ -73,7 +73,6 @@ function mth_loop_game_schema() {
 /**
  * Implements hook_install().
  */
-
 function mth_loop_game_install() {
   $demos = array();
   $demos[] = array(
