@@ -113,7 +113,7 @@ loopGame.proccesFormRetrieve = function(form) {
     loopGame.loadFromServer(path);
   }
   else {
-    alert('invalid input');
+    alert('Invalid input! The loop ID is a number.');
   }
   function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
@@ -193,7 +193,7 @@ loopGame.getNumberOfLoopsOnServer = function() {
 loopGame.createFormSaveRetrieve = function() {
   var text = '<form id="form_save_retrieve">';
   text += '<input type="button" value="Save Loop Online" onclick="loopGame.saveOnServer();">';
-  text += '<input type="text" name="server_loops" value="type a number (the loop ID)">';
+  text += '<input type="text" name="server_loops" value="type the loop ID">';
   //text += '<input type="number" name="server_loops" min="1" max="' + loopGame.nosl + '">';
   //text += '<select name="server_loops"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>';
   text += '<input type="button" value="Retrieve Loop" onclick="loopGame.proccesFormRetrieve(this.form);">';

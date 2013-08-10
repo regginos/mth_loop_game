@@ -74,12 +74,19 @@ function mth_loop_game_main_page($passed_arg = NULL) {
     'currentBeatColor' => '#757575',
   );
   if ($passed_arg && is_numeric($passed_arg)) {
-    $loop_game_settings = array_merge($loop_game_settings, mth_loop_game_load($passed_arg, FALSE));
+    if ($this_loop = mth_loop_game_load($passed_arg, FALSE)) {
+      $loop_game_settings = array_merge($loop_game_settings, $this_loop);
+      $not_found = FALSE;
+    }
+    else {
+      $not_found = t('Loop @loop_id was not found', array('@loop_id' => $passed_arg)) . '<br />';
+    }
   }
   drupal_add_js(array('mth_loop_game' => $loop_game_settings), 'setting');
   drupal_add_js($path . '/js/buffer-loader.js');
   drupal_add_js($path . '/js/loop_game.js');
-  $content = '<div id="loopGame"></div>' . PHP_EOL;
+  $content = ($not_found) ? '<div id="loop_load_error">' . $not_found . '</div>' . PHP_EOL : '';
+  $content .= '<div id="loopGame"></div>' . PHP_EOL;
   $content .= '<div id="ready">' . mth_loop_game_wait_notification() . '</div>' . PHP_EOL;
   $content .= '<div id="controls">' . PHP_EOL;
   $content .= '<div id="start_stop"></div>' . PHP_EOL;
@@ -104,9 +111,7 @@ function mth_loop_game_web_audio_warning() {
 }
 
 function mth_loop_game_save($loop) {
-  $long   = array('"loopLength"', '"notes"', '"tempo"', '"pattern"');
-  $short = array('"l"', '"n"', '"t"', '"p"');
-  $loop = str_replace($long, $short, $loop);
+  $loop = mth_loop_game_pack_loop($loop);
   global $user;
   $entry = array(
     'uid' => $user->uid,
@@ -146,17 +151,16 @@ function mth_loop_game_load($loop_id, $echo = TRUE) {
     }
   }
   else {
+    $loop = mth_loop_game_unpack_loop($loop_record[0]->hoop);
     if ($echo) {
-      $short = array('"l"', '"n"', '"t"', '"p"');
-      $long   = array('"loopLength"', '"notes"', '"tempo"', '"pattern"');
-      echo str_replace($short, $long, $loop_record[0]->hoop);
+      echo $loop;
     }
     else {
-      $loop = json_decode($loop_record[0]->hoop);
-      $loop_game_settings['loopLength'] = $loop->l;
-      $loop_game_settings['notes'] = $loop->n;
-      $loop_game_settings['tempo'] = $loop->t;
-      $loop_game_settings['pattern'] = $loop->p;
+      $loop = json_decode($loop, TRUE);
+      $loop_game_settings['loopLength'] = $loop['loopLength'];
+      $loop_game_settings['notes'] = $loop['notes'];
+      $loop_game_settings['tempo'] = $loop['tempo'];
+      $loop_game_settings['pattern'] = $loop['pattern'];
       return $loop_game_settings;
     }
   }
@@ -184,4 +188,58 @@ function mth_loop_game_entry_load($entry = array()) {
 function mth_loop_game_get_user_loops($uid){
   $entry  = array('uid' => $uid);
   return mth_loop_game_entry_load($entry);
+}
+
+/**
+ * Takes a JSON string and reduces it for storage in database.
+ */
+function mth_loop_game_pack_loop($loop) {
+  $long   = array('"loopLength"', '"notes"', '"tempo"', '"pattern"');
+  $short = array('"l"', '"n"', '"t"', '"p"');
+  $loop = str_replace($long, $short, $loop);
+  $loop_arr = json_decode($loop, TRUE);
+  foreach ($loop_arr['p'] as $key => $arr) {
+    $loop_arr['p'][$key] = mth_loop_game_encode($arr);
+  }
+  return json_encode($loop_arr);
+}
+
+/**
+ * Takes a JSON string and expands it back for use in JavaScript.
+ */
+function mth_loop_game_unpack_loop($loop) {
+  $loop_arr = json_decode($loop, TRUE);
+  $length = $loop_arr['l'];
+  foreach ($loop_arr['p'] as $key => $num) {
+    $loop_arr['p'][$key] = mth_loop_game_decode($num, $length);
+  }
+  $loop = json_encode($loop_arr);
+  $short = array('"l"', '"n"', '"t"', '"p"');
+  $long   = array('"loopLength"', '"notes"', '"tempo"', '"pattern"');
+  return str_replace($short, $long, $loop);
+}
+
+/**
+ * Takes an array of booleans and returns bitmask representation of that array
+ */
+function mth_loop_game_encode($arr){
+  $result = 0;
+  for ($i = 0, $j = 1; $i < count($arr); $i++, $j = $j << 1) {
+    if ($arr[$i]){
+      $result += $j;
+    }
+  }
+  return $result;
+}
+
+/**
+ * Takes two numbers and returns an array of booleans.
+ * The array represents the bits of the first argument from least significant.
+ * The second argument is how many bits to take.
+ */
+function mth_loop_game_decode($num, $count){
+  for ($i = 0, $j = 1; $i < $count; $i++, $j = $j << 1) {
+    $result[$i] = ($num & $j) ? 1 : 0;
+  }
+  return $result;
 }
