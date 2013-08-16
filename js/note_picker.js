@@ -45,8 +45,8 @@ notePicker.drawPiano = function() {
 
 notePicker.colorSelected = function() {
   for (var i = 0; i < this.notes.length; i++) {
-    var key = document.getElementById('piano-' + this.notes[i]);
-    key.setAttribute('style', 'fill:red;stroke:black;'); // check this, when update the piano!
+    var key = piano.getKeyByNote(this.notes[i]);
+    key.setAttribute('fill', 'red');
   }
 }
 
