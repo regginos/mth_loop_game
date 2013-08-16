@@ -163,9 +163,6 @@ function mth_loop_game_note_picker() {
   $html .= '<div id="keyboard"></div>';
   $html .= '<form>';
   $html .= '<div id="notes"></div>';
-  $html .= '<div id="mode">' . t('mode: add notes') . '</div>';
-  $html .= '<input type="button" value="' . t('Remove notes');
-  $html .= '" onclick="notePicker.toggleAddRemove(this);">';
   $html .= '<input type="button" value="' . t('OK');
   $html .= '" onclick="notePicker.finish();">';
   $html .= '<input type="button" value="' . t('Cancel');

@@ -5,7 +5,6 @@ window.onload = function() {
 var notePicker = {
   notes: window.dialogArguments['notes'],
   allNotes: window.dialogArguments['allNotes'],
-  mode: 'add',
   //pianoContainer: document.getElementById('keyboard'),
 };
 
@@ -22,36 +21,19 @@ notePicker.init = function() {
   this.updateNotes();
 };
 
-notePicker.toggleAddRemove = function(elem) {
-  if (this.mode === 'add') {
-    this.mode = 'remove';
-    elem.value = 'Add notes';
-    document.getElementById('mode').innerHTML = 'mode: remove notes';
-  }
-  else if (this.mode === 'remove') {
-    this.mode = 'add';
-    elem.value = 'Remove notes'
-    document.getElementById('mode').innerHTML = 'mode: add notes';
-  }
-}
-
 notePicker.managePianoClick = function(event) {
   var note = event.target.note;
   var compare = function(a,b){
     return a - b;
   }
   var index = notePicker.notes.indexOf(note);
-  if (notePicker.mode === 'add'){
-    if (index === -1) {
-      notePicker.notes.push(note);
-      notePicker.notes.sort(compare);
-    }
+  if (index === -1) {
+    notePicker.notes.push(note);
+    notePicker.notes.sort(compare);
   }
-  else if (notePicker.mode === 'remove') {
-    if (index !== -1) {
-      notePicker.notes.splice(index, 1);
-      notePicker.notes.sort(compare);
-    }
+  if (index !== -1) {
+    notePicker.notes.splice(index, 1);
+    notePicker.notes.sort(compare);
   }
   notePicker.updateNotes();
 }
