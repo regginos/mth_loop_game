@@ -57,6 +57,12 @@ function mth_loop_game_menu() {
     'page callback' => 'mth_loop_game_get_number_of_saved_loops',
     'access callback' => TRUE,
   );
+  $items[$module_path . '/notes'] = array(
+    'title' => 'Choose notes',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'mth_loop_game_note_picker',
+    'access callback' => TRUE,
+  );
   return $items;
 }
 
@@ -64,8 +70,10 @@ function mth_loop_game_main_page($passed_arg = NULL) {
   $path = drupal_get_path('module', 'mth_loop_game');
   $loop_game_settings = array(
     'soundsPath' => $path . '/sounds',
+    'allNotes' => mth_loop_game_get_all_notes(),
     'loadPath' => url('loop_game/load'),
     'savePath' => url('loop_game/save'),
+    'notesPath' => url('loop_game/notes'),
     'noslPath' => url('loop_game/nosl'),
     'nosl' => mth_loop_game_get_number_of_saved_loops(FALSE),
     'waitHTML' => mth_loop_game_wait_notification(),
@@ -76,7 +84,6 @@ function mth_loop_game_main_page($passed_arg = NULL) {
   if ($passed_arg && is_numeric($passed_arg)) {
     if ($this_loop = mth_loop_game_load($passed_arg, FALSE)) {
       $loop_game_settings = array_merge($loop_game_settings, $this_loop);
-      $not_found = FALSE;
     }
     else {
       $not_found = t('Loop @loop_id was not found', array('@loop_id' => $passed_arg)) . '<br />';
@@ -85,7 +92,7 @@ function mth_loop_game_main_page($passed_arg = NULL) {
   drupal_add_js(array('mth_loop_game' => $loop_game_settings), 'setting');
   drupal_add_js($path . '/js/buffer-loader.js');
   drupal_add_js($path . '/js/loop_game.js');
-  $content = ($not_found) ? '<div id="loop_load_error">' . $not_found . '</div>' . PHP_EOL : '';
+  $content = (isset($not_found)) ? '<div id="loop_load_error">' . $not_found . '</div>' . PHP_EOL : '';
   $content .= '<div id="loopGame"></div>' . PHP_EOL;
   $content .= '<div id="ready">' . mth_loop_game_wait_notification() . '</div>' . PHP_EOL;
   $content .= '<div id="controls">' . PHP_EOL;
@@ -127,6 +134,11 @@ function mth_loop_game_save($loop) {
   }
 }
 
+function mth_loop_game_get_all_notes($echo = TRUE) {
+  $notes_arr = array(60,61,62,63,64,65,66,67,68,69,70,71,72);
+  return $notes_arr;
+}
+
 function mth_loop_game_get_number_of_saved_loops($echo = TRUE) {
   $select = db_select('mth_loop_game_loops', 'loops')
     ->fields('loops');
@@ -137,6 +149,31 @@ function mth_loop_game_get_number_of_saved_loops($echo = TRUE) {
   else {
     return count($result);
   }
+}
+
+function mth_loop_game_note_picker() {
+  $scriptPath = drupal_get_path('module', 'mth_loop_game');
+  $html = '<html>';
+  $html .= '<head>';
+  $html .= '<title>' . t('Choose notes') . '</title>';
+  $html .= '<script src="' . $scriptPath . '/js/note_picker.js"></script>';
+  $html .= '<script src="' . $scriptPath . '/js/piano.js"></script>';
+  $html .= '</head>';
+  $html .= '<body>';
+  $html .= '<div id="keyboard"></div>';
+  $html .= '<form>';
+  $html .= '<div id="notes"></div>';
+  $html .= '<div id="mode">' . t('mode: add notes') . '</div>';
+  $html .= '<input type="button" value="' . t('Remove notes');
+  $html .= '" onclick="notePicker.toggleAddRemove(this);">';
+  $html .= '<input type="button" value="' . t('OK');
+  $html .= '" onclick="notePicker.finish();">';
+  $html .= '<input type="button" value="' . t('Cancel');
+  $html .= '" onclick="notePicker.cancel();">';
+  $html .= '</form>';
+  $html .= '</body>';
+  $html .= '</html>';
+  echo $html;
 }
 
 function mth_loop_game_load($loop_id, $echo = TRUE) {

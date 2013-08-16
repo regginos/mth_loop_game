@@ -8,6 +8,7 @@ var loopGame = {
   isLoopPlaying: false,
   tempo: 80,
   notes: [60,62,64,67,69,72],
+  allNotes: [],
   notesURL: [],
   BUFFERS: [],
   pattern: [],
@@ -15,6 +16,7 @@ var loopGame = {
   soundsPath: '', //TODO: think of a logical stucture for the sounds directory
   loadPath: '',
   savePath: '',
+  notesPath: '',
   noslPath: '',
   nosl: 3,
   waitHTML: '',
@@ -26,20 +28,13 @@ var loopGame = {
 
 jQuery(document).ready(function() {
   /*
-  Loop game is originaly designed as a Drupal 7 module, and the following
+  Loop game is designed as a Drupal 7 module, and the following
   line is a convienient way of passing settings from the server. 
-  It can be replaced with something like this:
-  var importedSettings = {
-    soundsPath: 'path/to/directory/with/sounds',
-    waitHTML: 'Loading...',
-    warningHTML: '<h1>Message to user</h1><p>How stupid can you be, not to use a browser that supports <a href="http://link.to.some/web/page">web audio</a>!</p>',
-  }
   */
   var importedSettings = Drupal.settings.mth_loop_game;
   loopGame.importSettings(importedSettings);
   window.AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!window.AudioContext) {
-    //alert(Drupal.t('Your browser most probably does not support web audio.'));
     document.getElementById('ready').innerHTML = loopGame.warningHTML;
   }
   else {
@@ -50,6 +45,15 @@ jQuery(document).ready(function() {
     loopGame.init();
   }
 });
+
+loopGame.ModDialNotes = function() {
+  var arg = {notes: loopGame.notes, allNotes: loopGame.allNotes};
+  var r = window.showModalDialog(loopGame.notesPath,
+      arg, "dialogwidth: 600; dialogheight: 300; resizable: yes");
+  if (r) {
+    document.getElementById('notes').value = r;
+  }
+}
 
 loopGame.processNewForm = function(form) {
   for (var i = 0; i < form.length; i++) {
@@ -88,7 +92,8 @@ loopGame.makeNewLoop = function(settings) {
 }
 
 loopGame.saveOnServer = function() {
-  var string = JSON.stringify(loopGame, ['loopLength','notes','tempo','pattern']);
+  var string = JSON.stringify(loopGame,
+      ['loopLength','notes','tempo','pattern']);
   var request = new XMLHttpRequest();
   var url =  loopGame.savePath + '/' + string;
   request.open("GET", url, true);
@@ -149,12 +154,6 @@ loopGame.proccesLoadForm = function(form) {
 
 loopGame.exportLoop = function() {
   var string = JSON.stringify(loopGame, ['loopLength','notes','tempo','pattern']);
-/*
-  string = string.replace('loopLength','l');
-  string = string.replace('notes','n');
-  string = string.replace('tempo','t');
-  string = string.replace('pattern','p');
-*/
   var newWindow = window.open('','','width=400,height=300');
   newWindow.document.write(string);
 }
@@ -163,7 +162,6 @@ loopGame.loadLoop = function(loop) {
   loopGame.stopLoop();
   document.getElementById('ready').innerHTML = loopGame.waitHTML;
   document.getElementById('loopGame').innerHTML = '';
-
   loopGame.importSettings(loop);
   loopGame.init();
 }
@@ -214,9 +212,15 @@ loopGame.createFormCustomize = function() {
   var text = '<p><br/>Customize the loop (make changes and then click "Make new loop"):</p>';
   text += '<form id="form_new_loop">';
   text += '<table>';
-  text += '<tr><td>Loop length (max 32):</td><td><input type="number" name="loopLength" min="2" max="32" value="' + loopGame.loopLength + '"></td></tr>';//<input type="text" name="loopLength" value="' + loopGame.loopLength + '"> 
-  text += '<tr><td>Notes (comma separated values 21-109, kick, snare, hihat, tom1, tom2, tom3):</td><td><input type="text" name="notes" value="' + loopGame.notes.toString() + '"></td></tr>';
-  text += '<tr><td>Tempo:</td><td><input type="range" name="tempo" min="40" max="200" value="80" onchange="loopGame.updateTempo(this.value);"><span id="tempoValue">80</span></td></tr>';
+  text += '<tr><td>Loop length (max 32):</td>';
+  text += '<td><input type="number" name="loopLength" min="2" max="32" value="' + loopGame.loopLength + '"></td></tr>';//<input type="text" name="loopLength" value="' + loopGame.loopLength + '"> 
+  text += '<tr><td>Notes (comma separated values 21-109, kick, snare, hihat, tom1, tom2, tom3):</td>';
+  text += '<td><input id="notes" type="text" name="notes" value="'
+  text += loopGame.notes.toString();
+  text += '" onclick="loopGame.ModDialNotes();"></td></tr>';
+  text += '<tr><td>Tempo:</td>';
+  text += '<td><input type="range" name="tempo" min="40" max="200" value="80" onchange="loopGame.updateTempo(this.value);">';
+  text += '<span id="tempoValue">80</span></td></tr>';
   text += '</table>';
   text += '<input type="button" value="Make new loop" onclick="loopGame.processNewForm(this.form);">';
   text += '</form>';
