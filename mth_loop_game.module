@@ -134,8 +134,11 @@ function mth_loop_game_save($loop) {
   }
 }
 
+/////////////////// TODO: check for all available notes and return them as array ///////////////////////
 function mth_loop_game_get_all_notes($echo = TRUE) {
-  $notes_arr = array(60,61,62,63,64,65,66,67,68,69,70,71,72);
+  for ($i = 36; $i <= 84; $i++) {
+    $notes_arr[] = $i;
+  }
   return $notes_arr;
 }
 

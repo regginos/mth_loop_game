@@ -47,11 +47,14 @@ jQuery(document).ready(function() {
 });
 
 loopGame.ModDialNotes = function() {
+  //var newNotes = Object.create(loopGame.notes); //create a COPY, don't just pass!
+  //var arg = {notes: newNotes, allNotes: loopGame.allNotes};
   var arg = {notes: loopGame.notes, allNotes: loopGame.allNotes};
   var r = window.showModalDialog(loopGame.notesPath,
       arg, "dialogwidth: 600; dialogheight: 300; resizable: yes");
-  if (r) {
-    document.getElementById('notes').value = r;
+  if (r) { // != loopGame.notes
+    //alert('Result is: ' + r + ', Notes are: ' + loopGame.notes);
+    document.getElementById('notes').value = r.toString();
   }
 }
 
@@ -78,7 +81,7 @@ loopGame.setLoopLength = function(string) {
   loopGame.loopLength = parseInt(string, 10);
 }
 
-loopGame.makeNewLoop = function(settings) {
+loopGame.makeNewLoop = function(/* settings */) {
 /*
   if (arguments.length > 0) {
     loopGame.importSettings(settings);
