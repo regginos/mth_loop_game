@@ -69,7 +69,7 @@ function mth_loop_game_menu() {
 function mth_loop_game_main_page($passed_arg = NULL) {
   $path = drupal_get_path('module', 'mth_loop_game');
   $loop_game_settings = array(
-    'soundsPath' => $path . '/sounds',
+    'soundsPath' => file_create_url($path . '/sounds'),
     'allNotes' => mth_loop_game_get_all_notes(),
     'loadPath' => url('loop_game/load'),
     'savePath' => url('loop_game/save'),
@@ -155,12 +155,12 @@ function mth_loop_game_get_number_of_saved_loops($echo = TRUE) {
 }
 
 function mth_loop_game_note_picker() {
-  $scriptPath = drupal_get_path('module', 'mth_loop_game');
+  $JSpath = drupal_get_path('module', 'mth_loop_game') . '/js/';
   $html = '<html>';
   $html .= '<head>';
   $html .= '<title>' . t('Choose notes') . '</title>';
-  $html .= '<script src="' . file_create_url($scriptPath . '/js/note_picker.js') . '"></script>';
-  $html .= '<script src="' . file_create_url($scriptPath . '/js/piano.js') . '"></script>';
+  $html .= '<script src="' . file_create_url($JSpath . 'note_picker.js') . '"></script>';
+  $html .= '<script src="' . file_create_url($JSpath . 'piano.js') . '"></script>';
   $html .= '</head>';
   $html .= '<body>';
   $html .= '<div id="keyboard"></div>';
