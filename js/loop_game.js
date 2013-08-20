@@ -299,12 +299,13 @@ loopGame.finishedLoading = function(bufferList) {
 loopGame.createFormGame = function() {
   var text = '';
   text += '<table><form>';
-  for (var i = 0; i < loopGame.notes.length; i++) {
+  for (var i = 0; i < this.notes.length; i++) {
     text += '<tr>';
-    for (var j = 0; j < loopGame.loopLength; j++) {
-      text += '<td class="beat-' + j + '" style="background:' + loopGame.beatColor + ';">';
+    text += '<td>' + this.midi2pitch(this.notes[i]).name + '</td>';
+    for (var j = 0; j < this.loopLength; j++) {
+      text += '<td class="beat-' + j + '" style="background:' + this.beatColor + ';">';
       text += '<input type="checkbox"';
-      text += (loopGame.pattern[i][j]) ? ' checked="checked"' : '';
+      text += (this.pattern[i][j]) ? ' checked="checked"' : '';
       text += ' onchange="loopGame.updateBeat(' + i + ',' + j + ',this.checked)">';
       text += '</td>';
     }
@@ -312,6 +313,33 @@ loopGame.createFormGame = function() {
   }
   text += '</form></table>';
   document.getElementById('loopGame').innerHTML = text;
+}
+
+loopGame.midi2pitch = function (note) {
+    if (note == 'kick' || note == 'snare' || note == 'hihat' || note == 'tom1' || note == 'tom2' || note == 'tom3') {
+      return {octave:null,name:note};
+    }
+  var type, name;
+  var octave = Math.floor(note/12);
+  var n = note % 12;
+  switch (n) {
+    case 0: name = 'C'; break;
+    case 1: name = 'C#/Db'; break;
+    case 2: name = 'D'; break;
+    case 3: name = 'D#/Eb'; break;
+    case 4: name = 'E'; break;
+    case 5: name = 'F'; break;
+    case 6: name = 'F#/Gb'; break;
+    case 7: name = 'G'; break;
+    case 8: name = 'G#/Ab'; break;
+    case 9: name = 'A'; break;
+    case 10: name = 'A#/Bb'; break;
+    case 11: name = 'B'; break;
+  }
+  return {
+    octave: octave,
+    name: name,
+  };
 }
 
 loopGame.showReady = function() {
