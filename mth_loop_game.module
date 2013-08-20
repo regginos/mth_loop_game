@@ -159,8 +159,8 @@ function mth_loop_game_note_picker() {
   $html = '<html>';
   $html .= '<head>';
   $html .= '<title>' . t('Choose notes') . '</title>';
-  $html .= '<script src="' . $scriptPath . '/js/note_picker.js"></script>';
-  $html .= '<script src="' . $scriptPath . '/js/piano.js"></script>';
+  $html .= '<script src="' . file_create_url($scriptPath . '/js/note_picker.js') . '"></script>';
+  $html .= '<script src="' . file_create_url($scriptPath . '/js/piano.js') . '"></script>';
   $html .= '</head>';
   $html .= '<body>';
   $html .= '<div id="keyboard"></div>';

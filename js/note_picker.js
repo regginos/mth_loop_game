@@ -1,19 +1,3 @@
-/*
-// I change the behaviour of the native indexOf Array method
-// because I need loose-type search for elements.
-Array.prototype.indexOf = function (searchElement) {
-  var i = this.length;
-  if (i === 0) {
-    return -1;
-  }
-  while (i--) {
-    if (this[i] == searchElement) { //loose type comparison!
-      return i;
-    }
-  }
-  return -1;
-};
-*/
 window.onload = function() {
   notePicker.init();
 };
@@ -37,28 +21,25 @@ notePicker.init = function() {
   this.updateNotes();
 };
 
+notePicker.indexOf = function(se, arr) {
+  var i = arr.length;
+  if (i === 0) {
+    return -1;
+  }
+  while (i--) {
+    if (arr[i] == se) {
+      return i;
+    }
+  }
+  return -1;
+};
+
 notePicker.managePianoClick = function(event) {
   var note = event.target.note;
-  var indexOf = function (se, arr) {
-    var i = arr.length;
-    if (i === 0) {
-      return -1;
-    }
-    while (i--) {
-      if (arr[i] == se) {
-        return i;
-      }
-    }
-    return -1;
-  };
   var compare = function(a, b) {
     return a - b;
   }
-  var index = indexOf(note, notePicker.notes);
-  //var index = notePicker.notes.indexOf(note);
-  //alert(Object.prototype.toString.apply(notePicker.notes));
-  //alert(Array.indexOf.prototype);
-  //alert(JSON.stringify(notePicker.notes) + ' index: ' + index);
+  var index = notePicker.indexOf(note, notePicker.notes);
   if (index == -1) {
     notePicker.notes.push(note);
   }
